@@ -1,5 +1,8 @@
 ESX = nil
 
+local GunDealerLoc = {x = 0,y=0,z=0,h=0}
+local gunsInStock = 2
+
 Citizen.CreateThread(function()
 	while ESX == nil do
 		TriggerEvent('esx:getSharedObject', function(obj) ESX = obj end)
@@ -12,6 +15,16 @@ Citizen.CreateThread(function()
 
 	PlayerData = ESX.GetPlayerData()
 end)
+
+TriggerServerEvent("mojito-gundealer:getLocationFromServer")
+
+RegisterNetEvent("mojito-gundealer:setLocationFromServer")
+AddEventHandler("mojito-gundealer:setLocationFromServer", function(DealerLocation)
+    GunDealerLoc = Config.DealerLocations[DealerLocation]
+    print(GunDealerLoc)
+end)
+
+
 
 function OpenBuyWeaponsMenu()
 	local elements = {}
@@ -84,18 +97,23 @@ function OpenBuyWeaponsMenu()
 				OpenWeaponComponentShop(data.current.components, data.current.name, menu)
 			end
 		else
-			ESX.TriggerServerCallback('mojito-gundealer:buyWeapon', function(bought)
-				if bought then
-					if data.current.price > 0 then
-						ESX.ShowNotification(_U('armory_bought', data.current.weaponLabel, ESX.Math.GroupDigits(data.current.price)))
-					end
+			if gunsInStock >= 1 then
+				ESX.TriggerServerCallback('mojito-gundealer:buyWeapon', function(bought)
+					if bought then
+						if data.current.price > 0 then
+							ESX.ShowNotification(_U('armory_bought', data.current.weaponLabel, ESX.Math.GroupDigits(data.current.price)))
+							gunsInStock = gunsInStock -1
+						end
 
-					menu.close()
-					OpenBuyWeaponsMenu()
-				else
-					ESX.ShowNotification(_U('armory_money'))
-				end
-			end, data.current.name, 1)
+						menu.close()
+						OpenBuyWeaponsMenu()
+					else
+						ESX.ShowNotification(_U('armory_money'))
+					end
+				end, data.current.name, 1)
+			else
+				ESX.ShowNotification("Sorry, I ain't got any more")
+			end
 		end
 	end, function(data, menu)
 		menu.close()
@@ -130,16 +148,18 @@ function OpenWeaponComponentShop(components, weaponName, parentShop)
 	end)
 end
 
-
+RegisterCommand('mgdGetLoc', function()
+    print(GunDealerLoc)
+end)
 
 Citizen.CreateThread(function()
 	while true do
 		Citizen.Wait(0)
 		local playerPed = PlayerPedId()
 		local coords = GetEntityCoords(playerPed)
-		local dist =  #(vector3(Config.DealerLocation['x'],Config.DealerLocation['y'],Config.DealerLocation['z']) - coords)
+		local dist =  #(vector3(GunDealerLoc.x,GunDealerLoc.y,GunDealerLoc.z) - coords)
 		if dist <= 2 then
-			DrawText3Ds(Config.DealerLocation['x'],Config.DealerLocation['y'],Config.DealerLocation['z'],"Press ~r~[E]~s~ to talk with the ~r~ Gun Dealer")
+			DrawText3Ds(GunDealerLoc.x,GunDealerLoc.y,GunDealerLoc.z,"Press ~r~[E]~s~ to talk with the ~r~ Gun Dealer")
 			if IsControlJustReleased(0, 38) then
 				wasOpen = true
 				OpenBuyWeaponsMenu()
@@ -154,7 +174,7 @@ Citizen.CreateThread(function()
     while not HasModelLoaded(npcHash) do
         Wait(1)
     end
-    dealer = CreatePed(1, npcHash, Config.DealerPed.x ,Config.DealerPed.y ,Config.DealerPed.z, Config.DealerPed.h, false, true)
+    dealer = CreatePed(1, npcHash, GunDealerLoc.x,GunDealerLoc.y,GunDealerLoc.z, GunDealerLoc.h, false, true)
     SetBlockingOfNonTemporaryEvents(dealer, true)
     SetPedDiesWhenInjured(dealer, false)
     SetPedCanPlayAmbientAnims(dealer, true)
