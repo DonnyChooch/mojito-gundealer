@@ -73,3 +73,15 @@ ESX.RegisterServerCallback('mojito-gundealer:buyWeapon', function(source, cb, we
 		end
 	end
 end)
+
+DealerLocationRand = math.random(1,4)
+
+DealerLocation = DealerLocationRand
+
+
+print("Current Location is: ^1"..DealerLocation.."^0")
+
+RegisterServerEvent('mojito-gundealer:getLocationFromServer')
+	AddEventHandler('mojito-gundealer:getLocationFromServer', function()
+	TriggerClientEvent("mojito-gundealer:setLocationFromServer", source, DealerLocation)
+end)
